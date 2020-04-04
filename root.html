@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>oneBtn</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+
+    <script type='text/javascript' src='_files/script.js'></script>
+  </head>
+  <body>
+
+  <nav class="navbar navbar-expand-sm bg-secondary navbar-secondary ">
+    <form class="form-inline ml-auto">
+      <input type="text" class="form-control mr-sm-2" id="usr" placeholder="Enter username">
+      <input type="password" class="form-control mr-sm-2" id="pwd" placeholder="Enter password">
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>    
+  </nav>
+
+  <div class="container-fluid mh-80">
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" data-toggle="tab" href="#oneBtnDeploy">oneBtnDeploy</a>
+      </li>     
+      <li class="nav-item">
+        <a class="nav-link" data-toggle="tab" href="#menu1">Menu 1</a>
+      </li>       
+      <li class="nav-item">
+        <a class="nav-link" data-toggle="tab" href="#menu2">Menu 2</a>
+      </li>
+    </ul>
+    <div class="tab-content">
+      <div id="oneBtnDeploy" class="container tab-pane active"><br>
+        <div class = "container">
+          <div class="row" id="console">
+            <div class="col-sm-6">
+              <p><b>Prerequisites:</b><br>1. iotcp containers pushed to ECR<br>2. iotcp lambda zips in S3<br>3. iotcp CloudFormation templates in S3<br>4. aws configs provided to this container</p>
+              <p><b>To use:</b><br>1. provide configs<br>2. Click <u>the one button</u></p>
+              <button type="button" class="btn btn-danger btn-lg btn-block" id="btn" onclick="theOneBtnClicked()">THE ONE BUTTON</button>
+            </div>
+            <div class="col-sm-6">
+              <label for="input"><b>provide configs here:</b></label>
+              <textarea class="form-control" rows="10" id="input" placeholder='example: &#x0a;{&#x0a;&emsp;"AWS_ACCESS_KEY_ID":"aString",&#x0a;&emsp;"AWS_SECRET_ACCESS_KEY":"longString/shortString",&#x0a;&emsp;"AWS_REGION", "us-east-1"&#x0a;&emsp;"S3bucket", "name-of-a-1btn-s3-bucket"&#x0a;}'></textarea>   
+            </div>
+          </div>
+        </div>
+<!--  -->
+{{if .showStackInfo}}
+<div class="container-fluid" style="margin-top:3%">
+  <table class="table table-striped">
+    <thead><tr><th>stack name</th><th>time started</th><th>last status</th></tr></thead>
+    <tbody>
+  {{range .stacks}}
+    <tr><td><a href="{{.stackLink}}">{{.stackName}}</a></td><td>{{.timeStart}}</td><td>{{.lastStatus}}</td></tr>
+  {{end}}
+    </tbody>
+  </table>
+  </div>
+{{end}}  
+<!--  -->
+      </div>
+      <div id="menu1" class="container tab-pane fade"><br>
+        <h3>Menu 1</h3>
+      </div>
+      <div id="menu2" class="container tab-pane fade"><br>
+        <h3>Menu 2</h3>
+      </div>
+    </div>
+  </div>
+
+
+
+
+  <div class="jumbotron text-center" style="margin-top:3%">
+    <p>support: gtan@4thiq.com</p>
+  </div>
+
+  </body>
+</html>
+
