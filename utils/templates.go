@@ -1,4 +1,4 @@
-package toolbag
+package utils
 
 const stackInfoDiv = `
         <div class="container-fluid" style="margin-top:3%">

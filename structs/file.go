@@ -1,6 +1,11 @@
-package toolbag
+package structs
 
 import "time"
+
+type RootPageData struct {
+	ShowStackInfo bool
+	Stacks        []StackInfo
+}
 
 type UserData struct {
 	AwsStuff AwsStuff    `json:"aws_stuff"`

@@ -4,18 +4,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"main/toolbag"
 	"net/http"
+	"os"
 	"time"
+
+	"main/structs"
+	"main/utils"
 )
 
-var OneBtnDep = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+var OneBtnDepHF = http.HandlerFunc(OneBtnDep)
+
+func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	// case "GET":
 	// 	fmt.Println("oneBtn---received GET")
 	case "POST":
 		bodyStr := func() string { bytes, _ := ioutil.ReadAll(r.Body); return string(bytes) }()
-		var userData toolbag.UserData
+		var userData structs.UserData
 
 		err := json.Unmarshal([]byte(bodyStr), &userData.AwsStuff)
 		if err != nil {
@@ -32,7 +37,7 @@ var OneBtnDep = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger.Println("---case---config provided in r.body")
 			// json.Unmarshal([]byte(bodyStr), &userData.AwsStuff)
 		}
-		awss, err := toolbag.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)
+		awss, err := utils.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)
 		if err != nil {
 			fmt.Fprintf(w, "ERROR @ NewAwsSvs: "+err.Error())
 			return
@@ -42,8 +47,8 @@ var OneBtnDep = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "ERROR @ GetAccountID: "+err.Error())
 			return
 		}
-		stackName := "iotcp-" + toolbag.ShortMiniteUniqueID()
-		userData.Stacks = append(userData.Stacks, toolbag.StackInfo{StackName: stackName, TimeStart: time.Now().UTC(), StackLink: "", LastStatus: ""})
+		stackName := "iotcp-" + utils.ShortMiniteUniqueID()
+		userData.Stacks = append(userData.Stacks, structs.StackInfo{StackName: stackName, TimeStart: time.Now().UTC(), StackLink: "", LastStatus: ""})
 
 		cookie := http.Cookie{Name: "name",
 			Value: func() string { bytes, _ := json.Marshal(userData); return string(bytes) }(), Path: "/",
@@ -58,6 +63,7 @@ var OneBtnDep = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		}
 
 		paramJSONbytes, _ := ioutil.ReadFile("1Btn/ssmParam.json")
+		os.Remove("1Btn/ssmParam.json")
 		paramMap := make(map[string]string)
 		err = json.Unmarshal(paramJSONbytes, &paramMap)
 		if err != nil {
@@ -77,4 +83,4 @@ var OneBtnDep = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	default:
 		fmt.Fprintf(w, "unexpected method: "+r.Method)
 	}
-})
+}

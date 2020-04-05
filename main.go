@@ -1,9 +1,10 @@
 package main
 
 import (
-	"main/handlers"
-	"main/toolbag"
 	"net/http"
+
+	"main/handlers"
+	"main/utils"
 )
 
 func main() {
@@ -14,8 +15,8 @@ func main() {
 
 	router.Handle("/_files/", http.StripPrefix("/_files/", http.FileServer(http.Dir("_files"))))
 
-	router.Handle("/", handlers.Root)
-	router.Handle("/oneBtn", handlers.OneBtnDep)
+	router.Handle("/", handlers.RootHF)
+	router.Handle("/oneBtn", handlers.OneBtnDepHF)
 
-	toolbag.StartServer(router, 888)
+	utils.StartServer(router, 888)
 }

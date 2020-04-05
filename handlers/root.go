@@ -2,16 +2,19 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 	"text/template"
 
-	"main/toolbag"
+	"main/structs"
+	"main/utils"
 )
 
-var logger = toolbag.Logger
+var logger = utils.Logger
 
-var Root = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+var RootHF = http.HandlerFunc(Root)
+
+func Root(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
@@ -27,15 +30,25 @@ var Root = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Execute(w, nil)
 		return
 	}
-	var userData toolbag.UserData
+	var userData structs.UserData
 	err = json.Unmarshal([]byte(c.Value), &userData)
 
-	awss, err := toolbag.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)
+	awss, err := utils.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)
 	if err != nil {
-		fmt.Println("root---got cookie but ERROR login aws @ NewAwsSvs: " + err.Error())
+		logger.Println(" (to be removed) bad cookie won't login: " + err.Error())
+		c.MaxAge = -1
+		http.SetCookie(w, c)
+		t.Execute(w, nil)
+		return
+	} else if len(userData.Stacks) < 1 {
+		logger.Println(" len(userData.Stacks) < 1")
 		t.Execute(w, nil)
 		return
 	}
+
+	logger.Println("------len(Stacks) = " + strconv.Itoa(len(userData.Stacks)))
+	acctID, err := awss.GetAccountID()
+	logger.Println("------acctID = " + acctID)
 
 	for _, v := range userData.Stacks {
 		stack, err := awss.GetStack(v.StackName)
@@ -48,5 +61,24 @@ var Root = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			userData.AwsStuff.Region + "#/stacks/stackinfo?stackId=" + *stack[0].StackId
 	}
 
-	t.Execute(w, nil)
-})
+	d := structs.RootPageData{
+		ShowStackInfo: true,
+		Stacks:        userData.Stacks,
+	}
+
+	t.Execute(w, d)
+}
+
+// var RootHF = http.HandlerFunc(
+// 	func(w http.ResponseWriter, r *http.Request) {
+// 		if r.URL.Path != "/" {
+// 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+// 			return
+// 		}
+// 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+// 		t, err := template.ParseFiles("./root.html")
+// 		if err != nil {
+// 			logger.Panic("failed to parse root.html template -- " + err.Error())
+// 		}
+// 		t.Execute(w, nil)
+// 	})

@@ -1,4 +1,4 @@
-package toolbag
+package utils
 
 import (
 	"log"
