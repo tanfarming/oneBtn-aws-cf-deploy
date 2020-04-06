@@ -15,6 +15,10 @@ import (
 var OneBtnDepHF = http.HandlerFunc(OneBtnDep)
 
 func OneBtnDep(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/OneBtnDep" {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
 	switch r.Method {
 	// case "GET":
 	// 	fmt.Println("oneBtn---received GET")
@@ -24,17 +28,17 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 
 		err := json.Unmarshal([]byte(bodyStr), &userData.AwsStuff)
 		if err != nil {
-			logger.Println("---case---invalid config in r.body ... try cookie")
+			utils.Logger.Println("---case---invalid config in r.body ... try cookie")
 			c, err := r.Cookie("name")
 			if err != nil {
-				logger.Println("---failed--- no input and no cookie == bad ...... cookie err = " + err.Error())
+				utils.Logger.Println("---failed--- no input and no cookie == bad ...... cookie err = " + err.Error())
 				fmt.Fprintf(w, "ERROR -- missing config: "+err.Error())
 				return
 			}
-			logger.Println("getting configs from cookie")
+			utils.Logger.Println("getting configs from cookie")
 			json.Unmarshal([]byte(c.Value), &userData)
 		} else {
-			logger.Println("---case---config provided in r.body")
+			utils.Logger.Println("---case---config provided in r.body")
 			// json.Unmarshal([]byte(bodyStr), &userData.AwsStuff)
 		}
 		awss, err := utils.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)

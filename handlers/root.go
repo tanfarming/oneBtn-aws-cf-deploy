@@ -10,8 +10,6 @@ import (
 	"main/utils"
 )
 
-var logger = utils.Logger
-
 var RootHF = http.HandlerFunc(Root)
 
 func Root(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +20,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	t, err := template.ParseFiles("./root.html")
 	if err != nil {
-		logger.Panic("failed to parse root.html template -- " + err.Error())
+		utils.Logger.Panic("failed to parse root.html template -- " + err.Error())
 	}
 
 	c, err := r.Cookie("name")
@@ -35,20 +33,20 @@ func Root(w http.ResponseWriter, r *http.Request) {
 
 	awss, err := utils.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)
 	if err != nil {
-		logger.Println(" (to be removed) bad cookie won't login: " + err.Error())
+		utils.Logger.Println(" (to be removed) bad cookie won't login: " + err.Error())
 		c.MaxAge = -1
 		http.SetCookie(w, c)
 		t.Execute(w, nil)
 		return
 	} else if len(userData.Stacks) < 1 {
-		logger.Println(" len(userData.Stacks) < 1")
+		utils.Logger.Println(" len(userData.Stacks) < 1")
 		t.Execute(w, nil)
 		return
 	}
 
-	logger.Println("------len(Stacks) = " + strconv.Itoa(len(userData.Stacks)))
+	utils.Logger.Println("------len(Stacks) = " + strconv.Itoa(len(userData.Stacks)))
 	acctID, err := awss.GetAccountID()
-	logger.Println("------acctID = " + acctID)
+	utils.Logger.Println("------acctID = " + acctID)
 
 	for _, v := range userData.Stacks {
 		stack, err := awss.GetStack(v.StackName)
@@ -78,7 +76,7 @@ func Root(w http.ResponseWriter, r *http.Request) {
 // 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 // 		t, err := template.ParseFiles("./root.html")
 // 		if err != nil {
-// 			logger.Panic("failed to parse root.html template -- " + err.Error())
+// 			utils.Logger.Panic("failed to parse root.html template -- " + err.Error())
 // 		}
 // 		t.Execute(w, nil)
 // 	})

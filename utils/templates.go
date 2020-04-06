@@ -1,6 +1,6 @@
 package utils
 
-const stackInfoDiv = `
+const dummy = `
         <div class="container-fluid" style="margin-top:3%">
 		<table class="table table-striped">
 		  <thead><tr><th>stack name</th><th>time started</th><th>last status</th></tr></thead>

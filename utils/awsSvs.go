@@ -41,7 +41,7 @@ func (as AwsSvs) CreateCFstack(stackName string, templateURL string) error {
 	if err != nil {
 		return err
 	}
-	logger.Println("======aws cloudformation stack creation started for stackName = " + stackName)
+	Logger.Println("======aws cloudformation stack creation started for stackName = " + stackName)
 
 	desInput := &cloudformation.DescribeStacksInput{StackName: aws.String(stackName)}
 
@@ -93,7 +93,7 @@ func (as AwsSvs) DownloadS3item(bucket, item string) error {
 	os.MkdirAll(item[:pos], os.ModePerm)
 	file, err := os.Create(item)
 	if err != nil {
-		// logger.Panic("---awsDownloadS3item --- failed to create file ---err = " + err.Error())
+		// Logger.Panic("---awsDownloadS3item --- failed to create file ---err = " + err.Error())
 		return err
 	}
 	defer file.Close()
@@ -108,7 +108,7 @@ func (as AwsSvs) DownloadS3item(bucket, item string) error {
 			Key:    aws.String(item),
 		})
 	if err != nil {
-		// logger.Panic("---awsDownloadS3item --- failed to download ---err = " + err.Error())
+		// Logger.Panic("---awsDownloadS3item --- failed to download ---err = " + err.Error())
 		return err
 	}
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")

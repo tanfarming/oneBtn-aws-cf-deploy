@@ -1,14 +1,9 @@
 package utils
 
 import (
-	"log"
-	"os"
 	"strconv"
 	"time"
 )
-
-var Logger = log.New(os.Stdout, "http: ", log.LstdFlags)
-var logger = Logger
 
 func BuildCFlink(region, stackID string) string {
 	return "https://" + region + ".console.aws.amazon.com/cloudformation/home?region=" + region + "#/stacks/stackinfo?stackId=" + stackID
