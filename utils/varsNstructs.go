@@ -1,6 +1,15 @@
-package structs
+package utils
 
-import "time"
+import (
+	"log"
+	"os"
+	"time"
+)
+
+const SessionTokenName = "session_token"
+
+var Logger = log.New(os.Stdout, "http: ", log.LstdFlags)
+var CACHE = NewCacheBox()
 
 type RootPageData struct {
 	ShowStackInfo bool
@@ -13,10 +22,13 @@ type UserData struct {
 }
 
 type AwsStuff struct {
-	Key      string `json:"key"`
-	Secret   string `json:"secret"`
-	Region   string `json:"region"`
-	S3bucket string `json:"s3bucket"`
+	Key               string `json:"key"`
+	Secret            string `json:"secret"`
+	Region            string `json:"region"`
+	CERTarn           string `json:"CERTarn"`
+	S3bucket          string `json:"S3bucket,omitempty"`
+	LambdaBucket      string `json:"LambdaBucket,omitempty"`
+	ContainerRegistry string `json:"ContainerRegistry,omitempty"`
 }
 
 type StackInfo struct {

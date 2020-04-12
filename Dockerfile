@@ -12,9 +12,10 @@ RUN apk --update add ca-certificates
 FROM scratch
 ENV PATH=/bin
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-
 WORKDIR /app/_files
 COPY --from=buildEnv /app/_files/. /app/_files/.
+WORKDIR /app/_templates
+COPY --from=buildEnv /app/_templates/. /app/_templates/.
 WORKDIR /app
 COPY --from=buildEnv /app/. /app/.
 ###### main is the module name, update it if another module name is specified in go.mod

@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
 
-    <script type='text/javascript' src='_files/script.js'></script>
+    
   </head>
   <body>
 
@@ -38,14 +38,31 @@
       <div id="oneBtnDeploy" class="container tab-pane active"><br>
         <div class = "container">
           <div class="row" id="console">
-            <div class="col-sm-6">
-              <p><b>Prerequisites:</b><br>1. iotcp containers pushed to ECR<br>2. iotcp lambda zips in S3<br>3. iotcp CloudFormation templates in S3<br>4. aws configs provided to this container</p>
+            <div class="col-sm-5">
+              <p><b>Prerequisites:</b>
+                <br># containers in <span style="font-size:small">$ContainerRegistry</span>
+                <br># lambda zips in <span style="font-size:small">$LambdaBucket</span>
+                <br># CF templates in <span style="font-size:small">$S3bucket</span>
+                <br># ARN of https cert in <span style="font-size:small">$CERTarn</span>
+                <br># <i>permissions permissions</i>
+              </p>
               <p><b>To use:</b><br>1. provide configs<br>2. Click <u>the one button</u></p>
-              <button type="button" class="btn btn-danger btn-lg btn-block" id="btn" onclick="theOneBtnClicked()">THE ONE BUTTON</button>
+              <button type="button" class="btn btn-danger btn-lg btn-block" id="theOneBtn" style="width: auto; max-width: 75%;">THE ONE BUTTON</button>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-7">
               <label for="input"><b>provide configs here:</b></label>
-              <textarea class="form-control" rows="10" id="input" placeholder='example: &#x0a;{&#x0a;&emsp;"AWS_ACCESS_KEY_ID":"aString",&#x0a;&emsp;"AWS_SECRET_ACCESS_KEY":"longString/shortString",&#x0a;&emsp;"AWS_REGION", "us-east-1"&#x0a;&emsp;"S3bucket", "name-of-a-1btn-s3-bucket"&#x0a;}'></textarea>   
+              <!-- <textarea class="form-control" rows="10" id="input" placeholder='example: &#x0a;{&#x0a;&emsp;"key":"aString",&#x0a;&emsp;"secret":"aLongerString",&#x0a;&emsp;"region", "us-east-1"&#x0a;&emsp;"S3bucket", "name-of-a-1btn-s3-bucket"&#x0a;}'></textarea>    -->
+              <textarea class="form-control text-white-50 bg-dark" rows="12" id="input" style="font-size:small; white-space:nowrap" spellcheck="false">
+{
+  "key":    "$AWS_ACCESS_KEY_ID",
+  "secret": "$AWS_SECRET_ACCESS_KEY",
+  "region": "$AWS_DEFAULT_REGION",
+  "CERTarn": "ARN of a certificate in ACM",
+  "S3bucket": "(optional) for OneBtnDep.yaml and ssmParam.json, default = 4thiq-onebtndep-oh",
+  "LambdaBucket": "(optional) for lambda ZIPs, default = 4thiq-lambdas-oh, used in OneBtnDep.yaml as parameter: lambdaBucket",
+  "ContainerRegistry": "(optional) for docker images, optional, default = 614375816418.dkr.ecr.us-east-1.amazonaws.com, used in OneBtnDep.yaml as parameter: IMGreg"
+}                
+              </textarea>   
             </div>
           </div>
         </div>
@@ -74,14 +91,15 @@
       </div>
     </div>
   </div>
-
-
-
-
-  <nav class="navbar navbar-expand-sm bg-secondary navbar-secondary" style="margin-top:3%">
-    <textarea class="form-control text-white-50 bg-dark" rows="5" id="logbox" style="resize: none">dummy placeholder</textarea>   
-  </nav>
-
+  <!-- <nav class="navbar navbar-expand-sm bg-secondary navbar-secondary" style="margin-top:3%">
+    <textarea readonly class="form-control text-warning bg-dark" rows="10" id="logBoard" style="resize:none;font-size:x-small" spellcheck="false" placeholder="dummy placeholder"></textarea>   
+  </nav> -->
+  <div class="container-fluid">
+    <nav class="navbar navbar-expand-sm bg-secondary navbar-secondary" style="margin-top:3%;">
+      <div readonly class="form-control text-warning bg-dark mh-75" id="divLogBoard" style="overflow:auto; font-size:small;height: auto; max-height: 25vh;"></div>
+    </nav>
+  </div>
+  <script type='text/javascript' src='_files/script.js'></script>
   </body>
 </html>
 

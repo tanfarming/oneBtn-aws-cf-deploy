@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/acm"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -17,31 +18,39 @@ import (
 
 type AwsSvs struct{ sess *session.Session }
 
-func NewAwsSvs(key, secret, region string) (AwsSvs, error) {
+func NewAwsSvs(key, secret, region string) (*AwsSvs, error) {
 	os.Setenv("AWS_ACCESS_KEY_ID", key)
 	os.Setenv("AWS_SECRET_ACCESS_KEY", secret)
+	os.Setenv("AWS_DEFAULT_REGION", region)
 	os.Setenv("AWS_REGION", region)
 	sess, err := session.NewSession()
+	// sess, err := session.NewSession(&aws.Config{Region: aws.String(region)})
+
 	if err != nil {
-		return AwsSvs{}, err
+		return &AwsSvs{}, err
 	}
-	return AwsSvs{sess: sess}, err
+	return &AwsSvs{sess: sess}, err
 }
 
-func (as AwsSvs) CreateCFstack(stackName string, templateURL string) error {
+func BuildCFlink(region, stackID string) string {
+	return "https://" + region + ".console.aws.amazon.com/cloudformation/home?region=" + region + "#/stacks/stackinfo?stackId=" + stackID
+}
+
+func (as AwsSvs) CreateCFstack(stackName string, templateURL string, params []*cloudformation.Parameter) error {
 	svc := cloudformation.New(as.sess)
 
 	input := &cloudformation.CreateStackInput{
 		TemplateURL:  aws.String(templateURL),
 		StackName:    aws.String(stackName),
 		Capabilities: []*string{aws.String("CAPABILITY_NAMED_IAM")},
+		Parameters:   params,
 	}
-
 	_, err := svc.CreateStack(input)
 	if err != nil {
+		// Logger.Println("[ERROR]: CreateCFstack FAILED and error = " + err.Error())
 		return err
 	}
-	Logger.Println("======aws cloudformation stack creation started for stackName = " + stackName)
+	// Logger.Println("===CreateCFstack started for stackName = " + stackName)
 
 	desInput := &cloudformation.DescribeStacksInput{StackName: aws.String(stackName)}
 
@@ -90,14 +99,15 @@ func (as AwsSvs) CreateSSMparameter(paramName, paramValue string) error {
 func (as AwsSvs) DownloadS3item(bucket, item string) error {
 	fmt.Println("---awsDownloadS3item---bucket =" + bucket + ", key=" + item)
 	pos := strings.LastIndex(item, `/`)
-	os.MkdirAll(item[:pos], os.ModePerm)
+	if pos > 0 {
+		os.MkdirAll(item[:pos], os.ModePerm)
+	}
+
 	file, err := os.Create(item)
 	if err != nil {
-		// Logger.Panic("---awsDownloadS3item --- failed to create file ---err = " + err.Error())
 		return err
 	}
 	defer file.Close()
-	// sess, _ := session.NewSession()
 
 	downloader := s3manager.NewDownloader(as.sess)
 
@@ -108,7 +118,6 @@ func (as AwsSvs) DownloadS3item(bucket, item string) error {
 			Key:    aws.String(item),
 		})
 	if err != nil {
-		// Logger.Panic("---awsDownloadS3item --- failed to download ---err = " + err.Error())
 		return err
 	}
 	fmt.Println("Downloaded", file.Name(), numBytes, "bytes")
@@ -122,4 +131,13 @@ func (as AwsSvs) GetAccountID() (string, error) {
 		return "", err
 	}
 	return *r.Account, nil
+}
+
+func (as AwsSvs) CheckCERTarn(CERTarn string) (cert string, err error) {
+	svc := acm.New(as.sess)
+	certOut, err := svc.GetCertificate(&acm.GetCertificateInput{CertificateArn: aws.String(CERTarn)})
+	if err != nil {
+		return "", err
+	}
+	return *certOut.Certificate, err
 }

@@ -42,9 +42,9 @@ func StartServer(router *http.ServeMux, port int) {
 		Addr:         listenAddr,
 		Handler:      tracing(nextRequestID)(logging(Logger)(router)),
 		ErrorLog:     Logger,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  15 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 0 * time.Second,
+		IdleTimeout:  3600 * time.Second,
 	}
 
 	done := make(chan bool)
