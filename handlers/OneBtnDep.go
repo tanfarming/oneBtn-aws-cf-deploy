@@ -109,7 +109,7 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				sess.PushMsg("ERROR @ CreateCFstack for " + stackName + ": " + err.Error())
 			}
-			updateSSMparam(stackName, accountNum, userData, awss, sess)
+			createSSMparam(stackName, accountNum, userData, awss, sess)
 		}()
 		go reportCreateCFstackStatus(stackName, sess, awss)
 
@@ -120,7 +120,7 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateSSMparam(stackName string, accountNum string, userData utils.UserData, awss *utils.AwsSvs, sess *utils.CacheBoxSessData) {
+func createSSMparam(stackName string, accountNum string, userData utils.UserData, awss *utils.AwsSvs, sess *utils.CacheBoxSessData) {
 	stacks, err := awss.GetStack(stackName)
 	if err != nil {
 		utils.Logger.Panic("ERROR @ GetStack: " + err.Error())
