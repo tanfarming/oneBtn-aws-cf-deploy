@@ -111,9 +111,8 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 			}
 			createSSMparam(stackName, accountNum, userData, awss, sess)
 		}()
-		go reportCreateCFstackStatus(stackName, sess, awss)
-
 		sess.PushMsg("CreateCFstack started for stackName=" + stackName)
+		go reportCreateCFstackStatus(stackName, sess, awss)
 		return
 	default:
 		fmt.Fprintf(w, "unexpected method: "+r.Method)
