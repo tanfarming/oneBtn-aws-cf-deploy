@@ -56,7 +56,8 @@ func StartServer(router *http.ServeMux, port int) {
 		Logger.Println("Server is shutting down...")
 		atomic.StoreInt32(&healthy, 0)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(),
+			3*time.Second) //default = 30 or longer probably i guess depends on the thing
 		defer cancel()
 
 		server.SetKeepAlivesEnabled(false)
