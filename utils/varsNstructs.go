@@ -3,7 +3,6 @@ package utils
 import (
 	"log"
 	"os"
-	"time"
 )
 
 const SessionTokenName = "session_token"
@@ -11,41 +10,48 @@ const SessionTokenName = "session_token"
 var Logger = log.New(os.Stdout, "http: ", log.LstdFlags)
 var CACHE = NewCacheBox()
 
-type RootPageData struct {
-	ShowStackInfo bool
-	Stacks        []StackInfo
-}
+// type RootPageData struct {
+// 	ShowStackInfo bool
+// 	Stacks        []StackInfo
+// }
 
-type UserData struct {
-	AwsStuff AwsStuff    `json:"aws_stuff"`
-	Stacks   []StackInfo `json:"stacks"`
-}
+// type UserData struct {
+// 	AwsCreds    AwsCreds          `json:"aws_stuff"`
+// 	Cfoverrides map[string]string `json:"cf_overrides"`
+// 	Stacks      []StackInfo       `json:"stacks"`
+// }
 
-type AwsStuff struct {
-	Key               string `json:"key"`
-	Secret            string `json:"secret"`
-	Region            string `json:"region"`
-	CERTarn           string `json:"CERTarn"`
-	S3bucket          string `json:"S3bucket,omitempty"`
-	LambdaBucket      string `json:"LambdaBucket,omitempty"`
-	ContainerRegistry string `json:"ContainerRegistry,omitempty"`
-}
+// type AwsCreds struct {
+// 	Key    string `json:"key"`
+// 	Secret string `json:"secret"`
+// 	Region string `json:"region"`
+// 	// CERTarn           string `json:"CERTarn"`
+// 	// S3bucket          string `json:"S3bucket,omitempty"`
+// 	// LambdaBucket      string `json:"LambdaBucket,omitempty"`
+// 	// ContainerRegistry string `json:"ContainerRegistry,omitempty"`
+// }
 
-type StackInfo struct {
-	StackName  string    `json:"stack_name"`
-	TimeStart  time.Time `json:"time_start"`
-	StackLink  string
-	LastStatus string
-}
+// type StackInfo struct {
+// 	StackName  string    `json:"stack_name"`
+// 	TimeStart  time.Time `json:"time_start"`
+// 	StackLink  string
+// 	LastStatus string
+// }
 
-func newUserData() UserData {
-	userData := UserData{
-		AwsStuff: AwsStuff{},
-		Stacks:   []StackInfo{StackInfo{}}}
-	return userData
-}
+// // func newUserData() UserData {
+// // 	userData := UserData{
+// // 		AwsCreds: AwsCreds{},
+// // 		Stacks:   []StackInfo{StackInfo{}}}
+// // 	return userData
+// // }
 
-type stackInfoData struct {
-	showStackInfo bool
-	Stacks        []StackInfo
-}
+// type stackInfoData struct {
+// 	showStackInfo bool
+// 	Stacks        []StackInfo
+// }
+
+// func (u *UserData)populate(in map[string]string){
+// 	u.AwsCreds.Key=in["awsKey"]
+// 	u.AwsCreds.Secret=in["awsSecret"]
+// 	u.AwsCreds.Region=in["awsRegion"]
+// }

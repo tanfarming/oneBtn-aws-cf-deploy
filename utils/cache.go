@@ -15,7 +15,8 @@ type SessBox struct {
 	internal map[string]*CacheBoxSessData
 }
 type CacheBoxSessData struct {
-	UserData *UserData
+	// UserData *UserData
+	UserData map[string]string
 	SseChan  chan string
 }
 

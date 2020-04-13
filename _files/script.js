@@ -24,6 +24,6 @@ function streamLogs(){
   source.onmessage = function (event) {
     // console.warn(event.data)
     divLogBoard.innerHTML+=event.data +"<br>";
-    // logBoard.scrollTop = logBoard.scrollHeight;
+    divLogBoard.scrollTop = divLogBoard.scrollHeight;
   }
 }

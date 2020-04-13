@@ -7,6 +7,7 @@ import (
 	"io"
 	mrand "math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -67,6 +68,12 @@ func PwdGen(length int) string {
 	for i := 0; i < length; i++ {
 		pwd = pwd + string(firstChar[0]+byte(mr.Intn(93)))
 	}
+
+	awsDislikedChars := []string{"/", "@", "\"", " "}
+	for _, c := range awsDislikedChars {
+		pwd = strings.Replace(pwd, c, "8", -1)
+	}
+
 	return pwd
 }
 

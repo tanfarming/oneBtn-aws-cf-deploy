@@ -54,13 +54,14 @@
               <!-- <textarea class="form-control" rows="10" id="input" placeholder='example: &#x0a;{&#x0a;&emsp;"key":"aString",&#x0a;&emsp;"secret":"aLongerString",&#x0a;&emsp;"region", "us-east-1"&#x0a;&emsp;"S3bucket", "name-of-a-1btn-s3-bucket"&#x0a;}'></textarea>    -->
               <textarea class="form-control text-white-50 bg-dark" rows="12" id="input" style="font-size:small; white-space:nowrap" spellcheck="false">
 {
-  "key":    "$AWS_ACCESS_KEY_ID",
-  "secret": "$AWS_SECRET_ACCESS_KEY",
-  "region": "$AWS_DEFAULT_REGION",
-  "CERTarn": "ARN of a certificate in ACM",
-  "S3bucket": "(optional) for OneBtnDep.yaml and ssmParam.json, default = 4thiq-onebtndep-oh",
-  "LambdaBucket": "(optional) for lambda ZIPs, default = 4thiq-lambdas-oh, used in OneBtnDep.yaml as parameter: lambdaBucket",
-  "ContainerRegistry": "(optional) for docker images, optional, default = 614375816418.dkr.ecr.us-east-1.amazonaws.com, used in OneBtnDep.yaml as parameter: IMGreg"
+  "awsKey":    "$AWS_ACCESS_KEY_ID",
+  "awsSecret": "$AWS_SECRET_ACCESS_KEY",
+  "awsRegion": "$AWS_DEFAULT_REGION",
+  "cf_CERTarn": "ARN of a certificate in ACM",
+  "cf_S3bucket": "(optional) for OneBtnDep.yaml and ssmParam.json, default = 4thiq-onebtndep-oh",
+  "cf_LambdaBucket": "(optional) for lambda ZIPs, default = 4thiq-lambdas-oh, used in OneBtnDep.yaml as parameter: lambdaBucket",
+  "cf_ContainerRegistry": "(optional) for docker images, optional, default = 614375816418.dkr.ecr.us-east-1.amazonaws.com, used in OneBtnDep.yaml as parameter: IMGreg",
+  "cf_dbPwd": "(optional) for rds password, use PwdGen() to generate a random one"
 }                
               </textarea>   
             </div>

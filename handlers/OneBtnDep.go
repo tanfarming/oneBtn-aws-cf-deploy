@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,19 +34,21 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 	// 	fmt.Println("oneBtn---received GET")
 	case "POST":
 		bodyStr := func() string { bytes, _ := ioutil.ReadAll(r.Body); return string(bytes) }()
-		var userData utils.UserData
 
-		err := json.Unmarshal([]byte(bodyStr), &userData.AwsStuff)
+		userData := make(map[string]string)
+
+		inputMap := make(map[string]string)
+		err := json.Unmarshal([]byte(bodyStr), &inputMap)
 		if err != nil {
-			sess.PushMsg("valid config NOT found in r.body == will try configs in cache ... btw json.Unmarshal error = " + err.Error())
-			userData = *sess.UserData
-			if userData.AwsStuff.Region == "" {
+			sess.PushMsg("ERROR @ Unmarshal r.body, will try configs in cache, btw json.Unmarshal error = " + err.Error())
+			userData = sess.UserData
+			if sess.UserData["awsRegion"] == "" {
 				sess.PushMsg("well, configs in cache is no good either, bye")
 				return
 			}
 		} else {
 			sess.PushMsg("config provided in r.body")
-			sess.UserData = &userData
+			userData = inputMap
 		}
 		// t := reflect.TypeOf(userData.AwsStuff)
 		// for i := 0; i < t.NumField(); i++ {
@@ -55,18 +59,9 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 		// 	fmt.Println(v.Field(i))
 		// }
 		// fmt.Println(userData.AwsStuff)
-		if userData.AwsStuff.S3bucket == "" {
-			userData.AwsStuff.S3bucket = "4thiq-onebtndep-oh"
-		}
-		if userData.AwsStuff.LambdaBucket == "" {
-			userData.AwsStuff.LambdaBucket = "4thiq-lambdas-oh"
-		}
-		if userData.AwsStuff.ContainerRegistry == "" {
-			userData.AwsStuff.ContainerRegistry = "614375816418.dkr.ecr.us-east-1.amazonaws.com"
-		}
 		//=======================================================================
 
-		awss, err := utils.NewAwsSvs(userData.AwsStuff.Key, userData.AwsStuff.Secret, userData.AwsStuff.Region)
+		awss, err := utils.NewAwsSvs(userData["awsKey"], userData["awsSecret"], userData["awsRegion"])
 		if err != nil {
 			sess.PushMsg("ERROR @ NewAwsSvs: " + err.Error())
 			return
@@ -78,7 +73,7 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 		}
 		sess.PushMsg("good aws config for account #: " + accountNum)
 
-		_, err = awss.CheckCERTarn(userData.AwsStuff.CERTarn)
+		_, err = awss.CheckCERTarn(userData["cf_CERTarn"])
 		if err != nil {
 			sess.PushMsg("ERROR @ CheckCERTarn: " + err.Error())
 			return
@@ -86,55 +81,74 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 		sess.PushMsg("good CERTarn too")
 
 		stackName := "iotcp-" + utils.StackNameGen()
-		userData.Stacks = append(userData.Stacks,
-			utils.StackInfo{
-				StackName: stackName,
-				TimeStart: time.Now().UTC()})
+		// userData.Stacks = append(userData.Stacks, utils.StackInfo{StackName: stackName,TimeStart: time.Now().UTC()})
 
-		dbPwd := utils.PwdGen(17)
-		awsDislikedChars := []string{"/", "@", "\"", " "}
-		for _, c := range awsDislikedChars {
-			dbPwd = strings.Replace(dbPwd, c, "8", -1)
+		cfParams := []*cloudformation.Parameter{}
+
+		for k := range userData {
+			if k[0:3] == "cf_" {
+				key := k[3:]
+				val := userData[k]
+				isPwdGen, _ := regexp.MatchString(`PwdGen\(\d+\)`, val)
+				if isPwdGen {
+					compRegEx := regexp.MustCompile(`PwdGen\((?P<len>\d+)\)`)
+					lenStr := compRegEx.FindStringSubmatch(val)[1]
+					userData[k] = val
+					len, err := strconv.Atoi(lenStr)
+					if err != nil {
+						sess.PushMsg("ERROR @ parsing PwdGen length: " + err.Error())
+						return
+					}
+					val = utils.PwdGen(len)
+				}
+				// fmt.Println("cf-appending key:" + key + ", and val: " + val)
+				cfParams = append(cfParams,
+					&cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(val)})
+			}
 		}
 
-		cfParams := []*cloudformation.Parameter{
-			&cloudformation.Parameter{ParameterKey: aws.String("CERTarn"), ParameterValue: aws.String(userData.AwsStuff.CERTarn)},
-			&cloudformation.Parameter{ParameterKey: aws.String("lambdaBucket"), ParameterValue: aws.String(userData.AwsStuff.LambdaBucket)},
-			&cloudformation.Parameter{ParameterKey: aws.String("IMGreg"), ParameterValue: aws.String(userData.AwsStuff.ContainerRegistry)},
-			&cloudformation.Parameter{ParameterKey: aws.String("dbPwd"), ParameterValue: aws.String(dbPwd)},
-		}
+		// fmt.Println(cfParams)
+
+		// cfParams := []*cloudformation.Parameter{
+		// 	&cloudformation.Parameter{ParameterKey: aws.String("CERTarn"), ParameterValue: aws.String(userData["cf_CERTarn"])},
+		// 	&cloudformation.Parameter{ParameterKey: aws.String("lambdaBucket"), ParameterValue: aws.String(userData["cf_LambdaBucket"])},
+		// 	&cloudformation.Parameter{ParameterKey: aws.String("IMGreg"), ParameterValue: aws.String(userData["cf_ContainerRegistry"])},
+		// 	&cloudformation.Parameter{ParameterKey: aws.String("dbPwd"), ParameterValue: aws.String(dbPwd)},
+		// }
 
 		go func() {
-			err = awss.CreateCFstack(stackName, "https://"+userData.AwsStuff.S3bucket+".s3.amazonaws.com/OneBtnDep.yaml", cfParams)
+			err = awss.CreateCFstack(stackName, "https://"+userData["S3bucket"]+".s3.amazonaws.com/OneBtnDep.yaml", cfParams)
 			if err != nil {
 				sess.PushMsg("ERROR @ CreateCFstack for " + stackName + ": " + err.Error())
 			}
 			createSSMparam(stackName, accountNum, userData, awss, sess)
 		}()
 		sess.PushMsg("CreateCFstack started for stackName=" + stackName)
-		go reportCreateCFstackStatus(stackName, sess, awss)
+		go reportCreateCFstackStatus(stackName, sess.UserData, sess, awss)
 		return
 	default:
 		fmt.Fprintf(w, "unexpected method: "+r.Method)
 	}
 }
 
-func createSSMparam(stackName string, accountNum string, userData utils.UserData, awss *utils.AwsSvs, sess *utils.CacheBoxSessData) {
+func createSSMparam(stackName string, accountNum string, userData map[string]string, awss *utils.AwsSvs, sess *utils.CacheBoxSessData) error {
 	stacks, err := awss.GetStack(stackName)
 	if err != nil {
-		utils.Logger.Panic("ERROR @ GetStack: " + err.Error())
+		sess.PushMsg("ERROR @ createSSMparam -- GetStack: " + err.Error())
+		return err
 	}
 	// userData := *sess.UserData
 	//----------create SSM parameter
 	paramMap, err := getSSMparamFromS3json(awss, userData, "ssmParam.json")
 	if err != nil {
 		sess.PushMsg("ERROR @ createSSMparamFromS3json: " + err.Error())
-		return
+		return err
 	}
-	paramMap["internalEndpoint"] = "http://nlb." + stackName
-	paramMap["deviceNotificationQueue"] = "https://sqs." + userData.AwsStuff.Region + ".amazonaws.com/" + accountNum + "/" + stackName + "-cycleNotification"
-	paramMap["deviceBillableEventQueue"] = "https://sqs." + userData.AwsStuff.Region + ".amazonaws.com/" + accountNum + "/" + stackName + "-billiableEvents"
-
+	for _, k := range userData {
+		if k[0:2] == "cf_" {
+			paramMap[k[3:]] = userData[k]
+		}
+	}
 	stackOutputs := stacks[0].Outputs
 	for _, output := range stackOutputs {
 		paramMap[*output.Description] = *output.OutputValue
@@ -144,12 +158,13 @@ func createSSMparam(stackName string, accountNum string, userData utils.UserData
 	err = awss.CreateSSMparameter(stackName, string(paramJSONbytes))
 	if err != nil {
 		sess.PushMsg("ERROR @ createSSMparamFromS3json: " + err.Error())
-		return
+		return err
 	}
+	return nil
 }
 
-func getSSMparamFromS3json(awss *utils.AwsSvs, userData utils.UserData, s3jsonFile string) (map[string]string, error) {
-	err := awss.DownloadS3item(userData.AwsStuff.S3bucket, s3jsonFile)
+func getSSMparamFromS3json(awss *utils.AwsSvs, userData map[string]string, s3jsonFile string) (map[string]string, error) {
+	err := awss.DownloadS3item(userData["S3bucket"], s3jsonFile)
 	if err != nil {
 		return nil, err
 	}
@@ -164,26 +179,28 @@ func getSSMparamFromS3json(awss *utils.AwsSvs, userData utils.UserData, s3jsonFi
 	return paramMap, nil
 }
 
-func reportCreateCFstackStatus(stackName string, sess *utils.CacheBoxSessData, awss *utils.AwsSvs) {
+func reportCreateCFstackStatus(stackName string, userData map[string]string, sess *utils.CacheBoxSessData, awss *utils.AwsSvs) error {
 	time.Sleep(time.Second * 15)
 	stackStatus := "something something IN_PROGRESS"
 	for strings.Contains(stackStatus, "IN_PROGRESS") {
 		stacks, err := awss.GetStack(stackName)
 		if err != nil {
-			utils.Logger.Panic("ERROR @ reportCreateCFstackStatus: " + err.Error())
+			sess.PushMsg("ERROR @ reportCreateCFstackStatus: " + err.Error())
+			return err
 		}
 		stack := *stacks[0]
 		stackStatus = *stack.StackStatus
 		sinceStart := time.Now().UTC().Sub(stack.CreationTime.UTC()).Round(time.Second).String()
-		stackLink := "https://" + sess.UserData.AwsStuff.Region + ".console.aws.amazon.com/cloudformation/home?region=" +
-			sess.UserData.AwsStuff.Region + "#/stacks/stackinfo?stackId=" + *stack.StackId
+		stackLink := "https://" + userData["awsRegion"] + ".console.aws.amazon.com/cloudformation/home?region=" +
+			userData["awsRegion"] + "#/stacks/stackinfo?stackId=" + *stack.StackId
+
 		reportMsg := "<span style=\"color:white\">(" + sinceStart + ")</span> status of CF stack " +
-			"<a href=\"" + stackLink + "\">&#128279;<b>" + stackName + "</b></a>" + " is " + stackStatus
+			"<a href=\"" + stackLink + "\" target=\"_blank\"><b>&#128279;" + stackName + "</b></a>" + " is " + stackStatus
 		if stack.StackStatusReason != nil {
 			reportMsg = reportMsg + " because " + *stack.StackStatusReason
 		}
 		sess.PushMsg(reportMsg)
 		time.Sleep(time.Second * 30)
 	}
-	return
+	return nil
 }
