@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -50,16 +49,6 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 			sess.PushMsg("config provided in r.body")
 			userData = inputMap
 		}
-		// t := reflect.TypeOf(userData.AwsStuff)
-		// for i := 0; i < t.NumField(); i++ {
-		// 	fmt.Printf("%+v\n", t.Field(i))
-		// }
-		// v := reflect.ValueOf(userData.AwsStuff)
-		// for i := 0; i < v.NumField(); i++ {
-		// 	fmt.Println(v.Field(i))
-		// }
-		// fmt.Println(userData.AwsStuff)
-		//=======================================================================
 
 		awss, err := utils.NewAwsSvs(userData["awsKey"], userData["awsSecret"], userData["awsRegion"])
 		if err != nil {
@@ -73,15 +62,14 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 		}
 		sess.PushMsg("good aws config for account #: " + accountNum)
 
-		_, err = awss.CheckCERTarn(userData["cf_CERTarn"])
-		if err != nil {
-			sess.PushMsg("ERROR @ CheckCERTarn: " + err.Error())
-			return
-		}
-		sess.PushMsg("good CERTarn too")
+		// _, err = awss.CheckCERTarn(userData["cf_CERTarn"])
+		// if err != nil {
+		// 	sess.PushMsg("ERROR @ CheckCERTarn: " + err.Error())
+		// 	return
+		// }
+		// sess.PushMsg("good CERTarn too")
 
 		stackName := "iotcp-" + utils.StackNameGen()
-		// userData.Stacks = append(userData.Stacks, utils.StackInfo{StackName: stackName,TimeStart: time.Now().UTC()})
 
 		cfParams := []*cloudformation.Parameter{}
 
@@ -101,20 +89,10 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 					}
 					val = utils.PwdGen(len)
 				}
-				// fmt.Println("cf-appending key:" + key + ", and val: " + val)
 				cfParams = append(cfParams,
 					&cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(val)})
 			}
 		}
-
-		// fmt.Println(cfParams)
-
-		// cfParams := []*cloudformation.Parameter{
-		// 	&cloudformation.Parameter{ParameterKey: aws.String("CERTarn"), ParameterValue: aws.String(userData["cf_CERTarn"])},
-		// 	&cloudformation.Parameter{ParameterKey: aws.String("lambdaBucket"), ParameterValue: aws.String(userData["cf_LambdaBucket"])},
-		// 	&cloudformation.Parameter{ParameterKey: aws.String("IMGreg"), ParameterValue: aws.String(userData["cf_ContainerRegistry"])},
-		// 	&cloudformation.Parameter{ParameterKey: aws.String("dbPwd"), ParameterValue: aws.String(dbPwd)},
-		// }
 
 		go func() {
 			err = awss.CreateCFstack(stackName, "https://"+userData["S3bucket"]+".s3.amazonaws.com/OneBtnDep.yaml", cfParams)
@@ -123,11 +101,13 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 			}
 			createSSMparam(stackName, accountNum, userData, awss, sess)
 		}()
-		sess.PushMsg("CreateCFstack started for stackName=" + stackName)
-		go reportCreateCFstackStatus(stackName, sess.UserData, sess, awss)
+		sess.PushMsg("&#128640;CreateCFstack started for stackName=" + stackName)
+		go reportCreateCFstackStatus(stackName, userData, sess, awss)
 		return
+
 	default:
-		fmt.Fprintf(w, "unexpected method: "+r.Method)
+		return
+		// fmt.Fprintf(w, "unexpected method: "+r.Method)
 	}
 }
 
@@ -145,7 +125,7 @@ func createSSMparam(stackName string, accountNum string, userData map[string]str
 		return err
 	}
 	for _, k := range userData {
-		if k[0:2] == "cf_" {
+		if k[0:3] == "cf_" {
 			paramMap[k[3:]] = userData[k]
 		}
 	}
@@ -180,7 +160,7 @@ func getSSMparamFromS3json(awss *utils.AwsSvs, userData map[string]string, s3jso
 }
 
 func reportCreateCFstackStatus(stackName string, userData map[string]string, sess *utils.CacheBoxSessData, awss *utils.AwsSvs) error {
-	time.Sleep(time.Second * 15)
+	time.Sleep(time.Second * 10)
 	stackStatus := "something something IN_PROGRESS"
 	for strings.Contains(stackStatus, "IN_PROGRESS") {
 		stacks, err := awss.GetStack(stackName)
@@ -200,7 +180,7 @@ func reportCreateCFstackStatus(stackName string, userData map[string]string, ses
 			reportMsg = reportMsg + " because " + *stack.StackStatusReason
 		}
 		sess.PushMsg(reportMsg)
-		time.Sleep(time.Second * 30)
+		time.Sleep(time.Second * 60)
 	}
 	return nil
 }

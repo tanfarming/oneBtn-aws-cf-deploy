@@ -73,13 +73,20 @@ func (sess *CacheBoxSessData) PushMsg(msg string) {
 	delay := time.Millisecond * 1
 	go func() {
 		if sess == nil {
-			fmt.Println("~~~PushMsg~~~ ERROR ------ WHY IS sess==nil ????? ### message dropped !!! msg=" + msg)
+			Logger.Println("WARNING @ PushMsg: no session. \n message dropped = <" + msg + ">")
 			return
 		}
+		attempt := 0
+		delayStep := 500 * time.Millisecond
+		maxAttempt := 10
 		for sess.SseChan == nil {
-			time.Sleep(5e8) //500ms
+			time.Sleep(delayStep)
 			delay = time.Second * 1
-			fmt.Println("~~~PushMsg~~~delay registered")
+			if attempt >= maxAttempt {
+				Logger.Println("WARNING @ PushMsg: no channel. \n message dropped = <" + msg + ">")
+				return
+			}
+			attempt = attempt + 1
 		}
 		time.Sleep(delay)
 		sess.SseChan <- fmt.Sprintf(msg)
