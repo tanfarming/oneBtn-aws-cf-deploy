@@ -19,19 +19,20 @@ import (
 var OneBtnDepHF = http.HandlerFunc(OneBtnDep)
 
 func OneBtnDep(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/OneBtnDep" {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
-	cookie, _ := r.Cookie(utils.SessionTokenName)
-	sess := utils.CACHE.Load(cookie.Value)
-	sess.PushMsg("yep you just clicked THE ONE BUTTON")
 
 	switch r.Method {
 	// case "GET":
 	// 	fmt.Println("oneBtn---received GET")
 	case "POST":
+		if r.URL.Path != "/OneBtnDep" {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		cookie, _ := r.Cookie(utils.SessionTokenName)
+		sess := utils.CACHE.Load(cookie.Value)
+		sess.PushMsg("!!! THE ONE BUTTON got clicked !!!")
+
 		bodyStr := func() string { bytes, _ := ioutil.ReadAll(r.Body); return string(bytes) }()
 
 		userData := make(map[string]string)
@@ -40,6 +41,7 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 		err := json.Unmarshal([]byte(bodyStr), &inputMap)
 		if err != nil {
 			sess.PushMsg("ERROR @ Unmarshal r.body, will try configs in cache, btw json.Unmarshal error = " + err.Error())
+
 			userData = sess.UserData
 			if sess.UserData["awsRegion"] == "" {
 				sess.PushMsg("well, configs in cache is no good either, bye")
@@ -81,7 +83,6 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 				if isPwdGen {
 					compRegEx := regexp.MustCompile(`PwdGen\((?P<len>\d+)\)`)
 					lenStr := compRegEx.FindStringSubmatch(val)[1]
-					userData[k] = val
 					len, err := strconv.Atoi(lenStr)
 					if err != nil {
 						sess.PushMsg("ERROR @ parsing PwdGen length: " + err.Error())
@@ -89,6 +90,7 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 					}
 					val = utils.PwdGen(len)
 				}
+				userData[k] = val
 				cfParams = append(cfParams,
 					&cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(val)})
 			}

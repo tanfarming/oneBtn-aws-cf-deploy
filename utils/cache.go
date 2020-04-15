@@ -90,7 +90,9 @@ func (sess *CacheBoxSessData) PushMsg(msg string) {
 		}
 		time.Sleep(delay)
 		sess.SseChan <- fmt.Sprintf(msg)
+		Logger.Println("PushMsg: <" + msg + ">")
 	}()
+	time.Sleep(5e7)
 }
 
 func NewCacheBox() CacheBox {

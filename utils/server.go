@@ -2,8 +2,9 @@ package utils
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/binary"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -35,7 +36,10 @@ func StartServer(router *http.ServeMux, port int) {
 	Logger.Println("Server is starting...")
 
 	nextRequestID := func() string {
-		return fmt.Sprintf("%d", time.Now().UnixNano())
+		// return fmt.Sprintf("%d", time.Now().UnixNano())
+		b := make([]byte, 8)
+		binary.LittleEndian.PutUint64(b, uint64(time.Now().UnixNano()))
+		return base64.RawStdEncoding.EncodeToString(b)
 	}
 
 	server := &http.Server{
@@ -57,7 +61,7 @@ func StartServer(router *http.ServeMux, port int) {
 		atomic.StoreInt32(&healthy, 0)
 
 		ctx, cancel := context.WithTimeout(context.Background(),
-			3*time.Second) //default = 30 or longer probably i guess depends on the thing
+			1*time.Second) //default = 30 or longer probably i guess depends on the thing
 		defer cancel()
 
 		server.SetKeepAlivesEnabled(false)
@@ -95,7 +99,8 @@ func logging(Logger *log.Logger) func(http.Handler) http.Handler {
 				if !ok {
 					requestID = "unknown"
 				}
-				Logger.Println(requestID, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+				// Logger.Println(requestID, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+				Logger.Println("(" + requestID + "):" + r.Method + "@" + r.URL.Path + " <- " + r.RemoteAddr)
 			}()
 			next.ServeHTTP(w, r)
 		})

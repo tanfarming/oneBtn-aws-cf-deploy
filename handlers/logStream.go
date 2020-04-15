@@ -46,7 +46,7 @@ func LogStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sess.SseChan = make(chan string)
-	sess.PushMsg("&#127383; connection established for:" + r.RemoteAddr + " @ " + cookie.Value + " &#127383;")
+	sess.PushMsg("&#127383; LogStream connected for sess: " + cookie.Value + " &#9193;" + r.RemoteAddr)
 
 	notify := w.(http.CloseNotifier).CloseNotify()
 	go func() {
@@ -67,21 +67,18 @@ func LogStream(w http.ResponseWriter, r *http.Request) {
 	// }()
 	// //^^^^^^^^^^^^^^^^^^^^^ junk log producer for debugging ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-	utils.Logger.Println("~~~connection established for:" + r.RemoteAddr + " @ " + cookie.Value + "~~~")
+	utils.Logger.Println("connection established for:" + r.RemoteAddr + " @ " + cookie.Value)
 
 	for {
 		if sess.SseChan == nil {
-			fmt.Println("----------sseChan==nil----------------")
+			utils.Logger.Println(" ??? LogStream: channel == nil ??? quit !!!")
 			break
 		}
 
 		msg, has := <-sess.SseChan
 		if has {
-			fmt.Println("---pushing msg=" + msg)
-			if strings.Contains(msg, "ERROR") {
-				msg = "&#128293;" + msg + "&#128293;"
-			}
-			fmt.Fprintf(w, "data: ["+time.Now().UTC().Format("2006.01.02-15:04:05")+"] -- %s\n\n", msg)
+
+			fmt.Fprintf(w, "data: ["+time.Now().UTC().Format("2006.01.02-15:04:05")+"] -- "+msgBeautifier(msg)+"\n\n")
 		}
 
 		// fmt.Fprintf(w, "data: ["+time.Now().UTC().Format("2006.01.02-15:04:05")+"] -- %s\n\n", <-utils.CACHE.Get(cookie.Value).SseChan)
@@ -90,4 +87,11 @@ func LogStream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("Finished HTTP request at ", r.URL.Path)
+}
+
+func msgBeautifier(msg string) string {
+	if strings.Contains(msg, "ERROR") {
+		msg = "&#128293;" + msg + "&#128293;"
+	}
+	return msg
 }

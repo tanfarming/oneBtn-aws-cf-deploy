@@ -2,8 +2,8 @@ package utils
 
 import (
 	crand "crypto/rand"
+	"encoding/base64"
 	"encoding/binary"
-	"fmt"
 	"io"
 	mrand "math/rand"
 	"net/http"
@@ -11,23 +11,24 @@ import (
 	"time"
 )
 
-func NewUUID() string {
+func NewUUID() []byte {
 	uuid := make([]byte, 16)
 	n, err := io.ReadFull(crand.Reader, uuid)
 	if n != len(uuid) || err != nil {
 		Logger.Panic("NewUUID err, something's not right")
-		return ""
+		return uuid
 	}
 	// variant bits;
 	uuid[8] = uuid[8]&^0xc0 | 0x80
 	// v4 pseudo-random;
 	uuid[6] = uuid[6]&^0xf0 | 0x40
-	return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
+	return uuid
+	// return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:])
 }
 
 func CreateNewSession() *http.Cookie {
 	Logger.Println("######################## create new sessions #########################")
-	id := NewUUID()
+	id := base64.RawURLEncoding.EncodeToString(NewUUID())
 	cookie := &http.Cookie{
 		Name:  SessionTokenName,
 		Value: id,
@@ -63,18 +64,18 @@ func PwdGen(length int) string {
 	var seed int64
 	binary.Read(crand.Reader, binary.BigEndian, &seed)
 	mr := mrand.New(mrand.NewSource(seed))
-	firstChar := "!" // i don't want space in pwd
+
 	var pwd string
-	for i := 0; i < length; i++ {
-		pwd = pwd + string(firstChar[0]+byte(mr.Intn(93)))
+	for i := 0; i < length-2; i++ {
+		roll := mr.Intn(95) + 32
+		pwd = pwd + string(byte(roll))
 	}
-
-	awsDislikedChars := []string{"/", "@", "\"", " "}
-	for _, c := range awsDislikedChars {
-		pwd = strings.Replace(pwd, c, "8", -1)
+	troubleChars := []string{`/`, `"`, `@`, ` `, `\`, `<`, `>`, `:`, `{`, `}`}
+	for _, c := range troubleChars {
+		replace := string(byte(mr.Intn(26) + 65))
+		pwd = strings.Replace(pwd, c, replace, -1)
 	}
-
-	return pwd
+	return "~" + pwd + "~"
 }
 
 func StackNameGen() string {
@@ -91,6 +92,6 @@ var ShortAdjs = []string{
 var ShortNouns = []string{
 	"air", "ant", "art", "axe", "act", "ale", "ape", "arm", "ash", "awl", "amp",
 	"bag", "bay", "bat", "bun", "box", "bed", "bee", "bow",
-	"cab", "cam", "can", "car", "cat", "cup", "cod", "cog",
+	"cab", "cam", "can", "car", "cat", "cup", "cod", "cog", "cow",
 	"dam", "den", "dew", "dog", "ear", "eye", "eal", "ice", "ion", "key", "pie", "sea", "tea",
 }
