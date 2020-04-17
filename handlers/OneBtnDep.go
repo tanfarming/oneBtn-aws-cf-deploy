@@ -2,9 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,28 +26,31 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-
-		cookie, _ := r.Cookie(utils.SessionTokenName)
-		sess := utils.CACHE.Load(cookie.Value)
+		// cookie, _ := r.Cookie(utils.SessionTokenName)
+		// sess := utils.CACHE.Load(cookie.Value)
+		sess := utils.GetSession(r.Cookie)
 		sess.PushMsg("!!! THE ONE BUTTON got clicked !!!")
+		// userData := make(map[string]string)
+		// inputMap := make(map[string]string)
+		// bodyStr := func() string { bytes, _ := ioutil.ReadAll(r.Body); return string(bytes) }()
+		// err := json.Unmarshal([]byte(bodyStr), &inputMap)
+		// if err != nil {
+		// 	sess.PushMsg("ERROR @ Unmarshal r.body, will try configs in cache, btw json.Unmarshal error = " + err.Error())
 
-		bodyStr := func() string { bytes, _ := ioutil.ReadAll(r.Body); return string(bytes) }()
+		// 	userData = sess.UserData
+		// 	if sess.UserData["awsRegion"] == "" {
+		// 		sess.PushMsg("well, configs in cache is no good either, bye")
+		// 		return
+		// 	}
+		// } else {
+		// 	sess.PushMsg("config provided in r.body")
+		// 	userData = inputMap
+		// }
 
-		userData := make(map[string]string)
-
-		inputMap := make(map[string]string)
-		err := json.Unmarshal([]byte(bodyStr), &inputMap)
+		userData, err := utils.ParseJsonReqBody(r.Body)
 		if err != nil {
 			sess.PushMsg("ERROR @ Unmarshal r.body, will try configs in cache, btw json.Unmarshal error = " + err.Error())
-
-			userData = sess.UserData
-			if sess.UserData["awsRegion"] == "" {
-				sess.PushMsg("well, configs in cache is no good either, bye")
-				return
-			}
-		} else {
-			sess.PushMsg("config provided in r.body")
-			userData = inputMap
+			return
 		}
 
 		awss, err := utils.NewAwsSvs(userData["awsKey"], userData["awsSecret"], userData["awsRegion"])
@@ -70,36 +71,23 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 		// 	return
 		// }
 		// sess.PushMsg("good CERTarn too")
+		deploymentName, ok := userData["deploymentName"]
+		if !ok {
+			deploymentName = "d"
+		}
+		stackName := deploymentName + "-" + utils.StackNameGen()
 
-		stackName := "iotcp-" + utils.StackNameGen()
-
-		cfParams := []*cloudformation.Parameter{}
-
-		for k := range userData {
-			if k[0:3] == "cf_" {
-				key := k[3:]
-				val := userData[k]
-				isPwdGen, _ := regexp.MatchString(`PwdGen\(\d+\)`, val)
-				if isPwdGen {
-					compRegEx := regexp.MustCompile(`PwdGen\((?P<len>\d+)\)`)
-					lenStr := compRegEx.FindStringSubmatch(val)[1]
-					len, err := strconv.Atoi(lenStr)
-					if err != nil {
-						sess.PushMsg("ERROR @ parsing PwdGen length: " + err.Error())
-						return
-					}
-					val = utils.PwdGen(len)
-				}
-				userData[k] = val
-				cfParams = append(cfParams,
-					&cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(val)})
-			}
+		cfParams, err := parseCFparams(userData)
+		if err != nil {
+			sess.PushMsg("ERROR @ parsing PwdGen length: " + err.Error())
 		}
 
 		go func() {
-			err = awss.CreateCFstack(stackName, "https://"+userData["S3bucket"]+".s3.amazonaws.com/OneBtnDep.yaml", cfParams)
+			// err = awss.CreateCFstack(stackName, "https://"+userData["S3bucket"]+".s3.amazonaws.com/OneBtnDep.yaml", cfParams)
+			err = awss.CreateCFstack(stackName, userData["TMPLs3ObjUrl"], cfParams)
 			if err != nil {
 				sess.PushMsg("ERROR @ CreateCFstack for " + stackName + ": " + err.Error())
+				return
 			}
 			createSSMparam(stackName, accountNum, userData, awss, sess)
 		}()
@@ -113,19 +101,45 @@ func OneBtnDep(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func parseCFparams(userData map[string]string) ([]*cloudformation.Parameter, error) {
+
+	cfParams := []*cloudformation.Parameter{}
+
+	for k := range userData {
+		if k[0:3] == "cf_" {
+			key := k[3:]
+			val := userData[k]
+			isPwdGen, _ := regexp.MatchString(`PwdGen\(\d+\)`, val)
+			if isPwdGen {
+				compRegEx := regexp.MustCompile(`PwdGen\((?P<len>\d+)\)`)
+				lenStr := compRegEx.FindStringSubmatch(val)[1]
+				len, err := strconv.Atoi(lenStr)
+				if err != nil {
+					return nil, err
+				}
+				val = utils.PwdGen(len)
+			}
+			userData[k] = val
+			cfParams = append(cfParams,
+				&cloudformation.Parameter{ParameterKey: aws.String(key), ParameterValue: aws.String(val)})
+		}
+	}
+	return cfParams, nil
+}
+
 func createSSMparam(stackName string, accountNum string, userData map[string]string, awss *utils.AwsSvs, sess *utils.CacheBoxSessData) error {
 	stacks, err := awss.GetStack(stackName)
 	if err != nil {
 		sess.PushMsg("ERROR @ createSSMparam -- GetStack: " + err.Error())
 		return err
 	}
-	// userData := *sess.UserData
 	//----------create SSM parameter
-	paramMap, err := getSSMparamFromS3json(awss, userData, "ssmParam.json")
-	if err != nil {
-		sess.PushMsg("ERROR @ createSSMparamFromS3json: " + err.Error())
-		return err
-	}
+	// paramMap, err := getSSMparamFromS3json(awss, userData, "ssmParam.json")
+	// if err != nil {
+	// 	sess.PushMsg("ERROR @ createSSMparamFromS3json: " + err.Error())
+	// 	return err
+	// }
+	paramMap := make(map[string]string)
 	for _, k := range userData {
 		if k[0:3] == "cf_" {
 			paramMap[k[3:]] = userData[k]
@@ -145,21 +159,21 @@ func createSSMparam(stackName string, accountNum string, userData map[string]str
 	return nil
 }
 
-func getSSMparamFromS3json(awss *utils.AwsSvs, userData map[string]string, s3jsonFile string) (map[string]string, error) {
-	err := awss.DownloadS3item(userData["S3bucket"], s3jsonFile)
-	if err != nil {
-		return nil, err
-	}
+// func getSSMparamFromS3json(awss *utils.AwsSvs, userData map[string]string, s3jsonFile string) (map[string]string, error) {
+// 	err := awss.DownloadS3item(userData["S3bucket"], s3jsonFile)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	paramJSONbytes, _ := ioutil.ReadFile(s3jsonFile)
-	os.Remove(s3jsonFile)
-	paramMap := make(map[string]string)
-	err = json.Unmarshal(paramJSONbytes, &paramMap)
-	if err != nil {
-		return nil, err
-	}
-	return paramMap, nil
-}
+// 	paramJSONbytes, _ := ioutil.ReadFile(s3jsonFile)
+// 	os.Remove(s3jsonFile)
+// 	paramMap := make(map[string]string)
+// 	err = json.Unmarshal(paramJSONbytes, &paramMap)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return paramMap, nil
+// }
 
 func reportCreateCFstackStatus(stackName string, userData map[string]string, sess *utils.CacheBoxSessData, awss *utils.AwsSvs) error {
 	time.Sleep(time.Second * 10)

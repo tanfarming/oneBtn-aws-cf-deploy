@@ -4,7 +4,9 @@ import (
 	crand "crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"io"
+	"io/ioutil"
 	mrand "math/rand"
 	"net/http"
 	"strings"
@@ -27,7 +29,7 @@ func NewUUID() []byte {
 }
 
 func CreateNewSession() *http.Cookie {
-	Logger.Println("######################## create new sessions #########################")
+	Logger.Println("######################## create new sessions: ########################")
 	id := base64.RawURLEncoding.EncodeToString(NewUUID())
 	cookie := &http.Cookie{
 		Name:  SessionTokenName,
@@ -70,7 +72,7 @@ func PwdGen(length int) string {
 		roll := mr.Intn(95) + 32
 		pwd = pwd + string(byte(roll))
 	}
-	troubleChars := []string{`/`, `"`, `@`, ` `, `\`, `<`, `>`, `:`, `{`, `}`}
+	troubleChars := []string{`/`, `"`, `@`, ` `, `\`, `<`, `>`, `:`, `{`, `}`, "'", "`"}
 	for _, c := range troubleChars {
 		replace := string(byte(mr.Intn(26) + 65))
 		pwd = strings.Replace(pwd, c, replace, -1)
@@ -94,4 +96,28 @@ var ShortNouns = []string{
 	"bag", "bay", "bat", "bun", "box", "bed", "bee", "bow",
 	"cab", "cam", "can", "car", "cat", "cup", "cod", "cog", "cow",
 	"dam", "den", "dew", "dog", "ear", "eye", "eal", "ice", "ion", "key", "pie", "sea", "tea",
+}
+
+func ParseJsonReqBody(reqBody io.ReadCloser) (map[string]string, error) {
+
+	bytes, err := ioutil.ReadAll(reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	inputmap := make(map[string]string)
+	err = json.Unmarshal(bytes, &inputmap)
+	if err != nil {
+		return nil, err
+	}
+	return inputmap, err
+}
+
+func GetSession(Cookie func(string) (*http.Cookie, error)) *CacheBoxSessData {
+	cookie, _ := Cookie(SessionTokenName)
+	sess := CACHE.Load(cookie.Value)
+	if sess == nil {
+		Logger.Println("WARNING @ GetSession: session not found")
+	}
+	return sess
 }

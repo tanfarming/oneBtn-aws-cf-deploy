@@ -38,32 +38,22 @@
       <div id="oneBtnDeploy" class="container tab-pane active"><br>
         <div class = "container">
           <div class="row" id="console">
-            <div class="col-sm-5">
-              <p><b>Prerequisites:</b>
-                <br># containers in <span style="font-size:small">$ContainerRegistry</span>
-                <br># lambda zips in <span style="font-size:small">$LambdaBucket</span>
-                <br># CF templates in <span style="font-size:small">$S3bucket</span>
-                <br># ARN of https cert in <span style="font-size:small">$CERTarn</span>
-                <br># <i>permissions permissions</i>
+            <div class="col-sm-6">
+              <p><b>How it works:</b>
+                <br># it runs a cloudformation(CF) template on an aws account
+                <br># it will create a random code name for the CF stack
+                <br># the CF template's input parameters can optionally be overridden
+                <br># the CF template's output parameter will be saved in a ssm parameter
               </p>
-              <p><b>To use:</b><br>1. provide configs<br>2. Click <u>the one button</u></p>
-              <button type="button" class="btn btn-danger btn-lg btn-block" id="theOneBtn" style="width: auto; max-width: 75%;">THE ONE BUTTON</button>
+              <p><b>To use:</b><br>
+                <!-- 1. put configs  <a href="#" data-toggle="onebtndep-popover" >(example)</a> in configBox<br> -->
+                1. put configs ( <button type="button" class="btn btn-outline-info btn-sm" id="oneBtnEx" >example</button> ) in configBox<br>
+                2. Click: <button type="button" class="btn btn-danger btn-lg btn-block" id="theOneBtn" style="width: auto; max-width: 75%;">THE ONE BUTTON</button></p>
             </div>
-            <div class="col-sm-7">
-              <label for="input"><b>provide configs here:</b></label>
+            <div class="col-sm-6">
+              <label for="input"><b>configBox:</b></label>
               <!-- <textarea class="form-control" rows="10" id="input" placeholder='example: &#x0a;{&#x0a;&emsp;"key":"aString",&#x0a;&emsp;"secret":"aLongerString",&#x0a;&emsp;"region", "us-east-1"&#x0a;&emsp;"S3bucket", "name-of-a-1btn-s3-bucket"&#x0a;}'></textarea>    -->
-              <textarea class="form-control text-white-50 bg-dark" rows="12" id="input" style="font-size:small; white-space:nowrap" spellcheck="false">
-{
-  "awsKey":    "$AWS_ACCESS_KEY_ID",
-  "awsSecret": "$AWS_SECRET_ACCESS_KEY",
-  "awsRegion": "$AWS_DEFAULT_REGION",
-  "cf_CERTarn": "ARN of a certificate in ACM",
-  "cf_S3bucket": "(optional) for OneBtnDep.yaml and ssmParam.json, default = 4thiq-onebtndep-oh",
-  "cf_LambdaBucket": "(optional) for lambda ZIPs, default = 4thiq-lambdas-oh, used in OneBtnDep.yaml as parameter: lambdaBucket",
-  "cf_ContainerRegistry": "(optional) for docker images, optional, default = 614375816418.dkr.ecr.us-east-1.amazonaws.com, used in OneBtnDep.yaml as parameter: IMGreg",
-  "cf_dbPwd": "(optional) for rds password, use PwdGen() to generate a random one"
-}                
-              </textarea>   
+              <textarea class="form-control text-white-50 bg-dark" rows="12" id="oneBtnInput" style="font-size:small; white-space:nowrap" spellcheck="false"></textarea>   
             </div>
           </div>
         </div>        
@@ -85,6 +75,8 @@
     </nav>
   </div>
   <script type='text/javascript' src='_files/script.js'></script>
+
+  
   </body>
 </html>
 
